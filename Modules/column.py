@@ -114,13 +114,14 @@ class Column(object):
         self.bz = res.sol(self.z)[1, :]  
         
     
-    def vertadvdiff(self,wA,dt):
+    def vertadvdiff(self,wA,dt,do_conv):
         #upwind vert. adv. and diffusion
         if not isinstance(wA,np.ndarray):
            wA=self.make_array(wA,'wA')
         dz=self.z[1:]-self.z[0:-1];
         # apply boundary conditions:        
-        self.b[-1]=self.bs;
+        if not do_conv: # if we use convection upper BC will be applied there
+            self.b[-1]=self.bs;
         if self.bzbot is None:
             self.b[0]=self.bbot;
         else:
@@ -143,8 +144,13 @@ class Column(object):
         # it also assumes a fixed surface buoyancy BC, and hence any
         # surface heat flux that's required to adjust the buoyancy of the
         # convecting column:
-        ind=self.b>self.b[-1]+self.N2min*self.z
-        self.b[ind]=self.b[-1]+self.N2min*self.z[ind]
+        #
+        # This is the original code:
+        #ind=self.b>self.b[-1]+self.N2min*self.z
+        #self.b[ind]=self.b[-1]+self.N2min*self.z[ind]
+        # This is a variant to fix b at bottom of convective layer as opposed to top
+        ind=self.b>self.bs
+        self.b[ind]=self.bs+self.N2min*(self.z[ind]-np.max(self.z[np.invert(ind)]))        
         # Below is an energy conserving version that could be used 
         # for model formulations without fixed surface b. But for fixed surface
         # b, the simpler version above is preferable as it deals better with long time steps
@@ -169,15 +175,15 @@ class Column(object):
     
     def timestep(self,wA=0.,dt=1.,do_conv=False,vdx_in=None,b_in=None):
         #Integrate buoyancy profile evolution for one time-step
+        if do_conv:
+           # do convection: (optional)
+           self.convect()
         # do vertical advection and diffusion:
-        self.vertadvdiff(wA=wA,dt=dt)
+        self.vertadvdiff(wA=wA,dt=dt,do_conv=do_conv)
         if vdx_in is not None:  
            # do horizontal advection: (optional)
            if b_in is not None: 
               self.horadv(vdx_in=vdx_in,b_in=b_in,dt=dt)
            else:
               raise TypeError('b_in is needed if vdx_in is provided')
-        if do_conv:
-           # do convection: (optional)
-           self.convect()
         

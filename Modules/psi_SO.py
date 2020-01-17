@@ -154,10 +154,15 @@ class Psi_SO(object):
         self.Psi_Ek=self.calc_Ekman()/1e6;
         self.Psi_GM=self.calc_GM()/1e6;
         self.Psi=self.Psi_Ek + self.Psi_GM;
-        # Notice that the bottom boundary is somewhat poorly defined, as it is
-        # only for BC. To avoid random fluctuation in bottom Psi, we here simply 
-        # set it to value of last gridpoint above
-        self.Psi[0]=self.Psi[1]         
+        # Notice that the bottom boundary is somewhat poorly defined, 
+        # and it is only used to find the adequate boundary condition (because we
+        # need to know whether water is coming in at the bottom buoyancy) where
+        # in turn we are only interested in the sign (and finiteness) of Psi at the bottom,
+        # as well as potentially for plotting purposes
+        # We here simply set it to a small fraction of the value of last gridpoint above
+        # which means that the streamfunction goes to apprximately zero with the sign given 
+        # by Psi at the last interior (and hence physical) gridpoint
+        self.Psi[0]=1e-4*self.Psi[1]         
         
     
     def update(self,b=None,bs=None):
