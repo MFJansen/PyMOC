@@ -1,0 +1,96 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  test-python-3.6:
+    docker:
+      - image: pymoc/pymoc:3.6
+    working_directory: /pymoc
+    steps:
+      - checkout
+      - run:
+          name: install pymoc
+          command: python setup.py install
+      - run:
+          name: setup codeclimate reporter
+          command: curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter && chmod +x ./cc-test-reporter
+      - run:
+          name: codeclimate pre-build hooks
+          command: ./cc-test-reporter before-build
+      - run:
+          name: run tests
+          command: py.test -v --cov=src/pymoc --cov-report=xml --cov-config=.coveragerc
+      - run:
+          name: codeclimate post-build hooks
+          command:  ./cc-test-reporter after-build --coverage-input-type coverage.py --exit-code $?
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+  test-python-2.7:
+    docker:
+      - image: pymoc/pymoc:2.7
+    working_directory: /pymoc
+    steps:
+      - checkout
+      - run:
+          name: install pymoc
+          command: python setup.py install
+      - run:
+          name: run tests
+          command: py.test -v 
+  docs-build:
+    docker:
+      - image: pymoc/pymoc:latest
+    working_directory: /pymoc
+    steps:
+      - checkout
+      - run:
+          name: install pymoc
+          command: python setup.py install
+      - run:
+          name: Build docs
+          command: cd docs/ && make html
+      - persist_to_workspace:
+          root: docs/_build
+          paths: html
+  docs-deploy:
+    docker:
+      - image: node:8.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: docs/_build
+      - run:
+          name: Disable jekyll builds
+          command: touch docs/_build/html/.nojekyll
+      - add_ssh_keys:
+          fingerprints:
+            - "d4:a3:8b:5f:a9:e3:b4:ce:a1:12:d2:70:0d:3b:3b:ce"
+      - run:
+          name: Install and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.0.1
+            git config user.email "ci-build@klukas.net"
+            git config user.name "ci-build"
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: gh-pages --dotfiles --message "[skip ci] Updates" --dist docs/_build/html --repo git@github.com:pymoc/pymoc.github.io --branch master
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test-python-3.6
+      - test-python-2.7
+      - docs-build:
+          requires:
+            - test-python-3.6
+            - test-python-2.7
+      - docs-deploy:
+          requires:
+            - docs-build
+          filters:
+            branches:
+              only: master
