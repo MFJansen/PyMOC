@@ -26,13 +26,11 @@ bs_north=0.00036; bAABW=-0.0011; bbot=min(bAABW,bs_north)
 # S.O. surface boundary conditions and grid:
 y=np.asarray(np.linspace(0,3.e6, 51))
 tau=0.16
-#tau=0.305*np.sin(np.pi*(y-1.11e5)/4.7e6)**2-0.068 
 offset=0.0345*(1-np.cos(np.pi*(5.55e5-1.e5)/8e6));
 bs_SO=(0.0345*(1-np.cos(np.pi*(y-1.e5)/8e6))*(y>5.55e5)
       +(bAABW-offset)/5.55e5*np.maximum(0,5.55e5-y)+offset*(y<5.55e5));
 
 
-#bs_SO=bbot+(bs-bbot)*y/(y[-1]-y[0])
 # time-stepping parameters:
 dt=86400.*30.                               # time-step for vert. adv. diff. calc.
 MOC_up_iters=int(np.floor(1.*360*86400/dt)) # multiplier for MOC time-step (MOC is updated every MOC_up_iters time steps)
@@ -41,10 +39,6 @@ total_iters=int(np.ceil(10000*360*86400/dt))# total number of timesteps
 
 # Effective diffusivity profile
 def kappaeff(z): # effective diffusivity profile with tapering in BBL
-#        #return (1e-5+3e-4*(np.exp((-4000-z)/1000.)))*(1.-np.maximum(-4000.-z+500.,0.)/500.)**2  
-#        #return (2e-5+1e-4*(z<-1500.))*(1.-np.maximum(-4000.-z+500.,0.)/500.)**2  
-#     #   return 1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/700. + np.minimum(z+2000.,0)/1000.))
-#     #           *(1.-np.maximum(-4000.-z+800.,0.)/800.)**2 )
         return 1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/1000. + np.minimum(z+2000.,0)/1300.))
                 *(1.-np.maximum(-4000.-z+600.,0.)/600.)**2 )
 
@@ -76,7 +70,6 @@ AMOC.solve()
 
 
 # create S.O. overturning model instance for Atlantic sector
-#SO_Atl=Psi_SO(z=z,y=y,b=b_Atl(z),bs=bs_SO,tau=tau,L=Latl+Lpac,KGM=1000.,Hsill=500.,HEk=100.,Htapertop=100.,Htaperbot=500.)
 SO_Atl=Psi_SO(z=z,y=y,b=b_Atl(z),bs=bs_SO,tau=tau,L=Latl+Lpac,KGM=K)
 SO_Atl.solve()
 
@@ -98,18 +91,11 @@ ax2.set_xlim((-0.02,0.030))
 # loop to iteratively find equilibrium solution
 for ii in range(0, total_iters):    
    # update buoyancy profile
-   #wAb=(AMOC.Psi-SO.Psi)*1e6
-   #wAN=-AMOC.Psi*1e6
    # using isopycnal overturning:
    wA_Atl=(Psi_iso_Atl-SO_Atl.Psi)*1e6
    wAN=-Psi_iso_N*1e6
    Atl.timestep(wA=wA_Atl,dt=dt)
    north.timestep(wA=wAN,dt=dt,do_conv=True)
-   # with hor. advection: (not to be used with isopycnal overturning)
-   #vdx=0*AMOC.Psi
-   #vdx[1:-1]=-1e6*(AMOC.Psi[0:-2]-AMOC.Psi[2:])/(AMOC.z[0:-2]-AMOC.z[2:])
-   #Atl.timestep(wA=wAb,dt=dt,vdx_in=-vdx,b_in=north.b)
-   #north.timestep(wA=wAN,dt=dt,do_conv=True,vdx_in=vdx,b_in=Atl.b)
    
    if ii%MOC_up_iters==0:
       # update overturning streamfunction (can be done less frequently)
@@ -275,8 +261,6 @@ ax2.set_xlim((-0.02,0.030))
 ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
 ax2.set_xlabel('$b_B$ [m s$^{-2}$]', fontsize=13)
 ax1.plot(AMOC.Psi, AMOC.z,'--r', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi, SO_Atl.z, ':b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi, SO_Pac.z, ':g', linewidth=1.5)
 ax1.plot(PsiSO, z, '--c', linewidth=1.5)
 ax2.plot(Atl.b, Atl.z, '-b', linewidth=1.5)
 ax2.plot(north.b, Atl.z, '-r', linewidth=1.5)     

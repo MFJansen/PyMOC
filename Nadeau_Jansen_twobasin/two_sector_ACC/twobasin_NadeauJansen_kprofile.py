@@ -27,12 +27,11 @@ from matplotlib import pyplot as plt
 from interp_channel import Interpolate_channel
 from interp_twocol import Interpolate_twocol
 
-#diag_file='ref_new'#'kapx1.npz'
-diag_file='bAABWx4.npz'
+diag_file='ref_new'#'kapx1.npz'
+#diag_file='bAABWx4.npz'
 
 # boundary conditions:
-bs=0.02;#0.015;
-#bs_north=0.0006; bbot= -0.0012
+bs=0.02;
 # the minimum surface buoyancy in the GCM in the North Atlantic is 3.5890e-04 (or 0.1795C)
 bs_north=0.00036; bAABW=-0.0011; bbot=min(bAABW,bs_north)
 
@@ -42,19 +41,10 @@ bs_north=0.00036; bAABW=-0.0011; bbot=min(bAABW,bs_north)
 # S.O. surface boundary conditions and grid:
 y=np.asarray(np.linspace(0,3.e6, 51))
 tau=0.16
-#tau=0.305*np.sin(np.pi*(y-1.11e5)/4.7e6)**2-0.068 
 offset=0.0345*(1-np.cos(np.pi*(5.55e5-1.e5)/8e6));
 bs_SO=(0.0345*(1-np.cos(np.pi*(y-1.e5)/8e6))*(y>5.55e5)
       +(bAABW-offset)/5.55e5*np.maximum(0,5.55e5-y)+offset*(y<5.55e5));
 
-#bo=0.0006
-#bs_SO=(bo+(bs-bo)*(y-5.55e5)/(y[-1]-5.55e5)*(y>5.55e5)
-#       +(bbot-bo)/5.55e5*(5.55e5-y)*(y<5.55e5))
-#bs_SO[0]=bbot
-
-
-#if bbot==0:
-#    bs_SO=np.maximum(bs_SO,0.)
 
 GCM_b=np.array([-0.0015,-0.0004,0.0007,0.0013,0.0022,0.0032,0.0045,0.0060,
                 0.0078,0.0099,0.0123,0.0144,0.0174,0.0212,0.0243,0.0266])
@@ -70,12 +60,7 @@ fig = plt.figure(figsize=(6,6))
 plt.plot(GCM_y,GCM_b)
 plt.plot(y,bs_SO)    
 
-#fig = plt.figure(figsize=(6,6))
-#plt.plot(GCM_y,GCM_tau)
-#plt.plot(y,tau)    
 
-
-#bs_SO=bbot+(bs-bbot)*y/(y[-1]-y[0])
 # time-stepping parameters:
 dt=86400.*30.                               # time-step for vert. adv. diff. calc.
 MOC_up_iters=int(np.floor(1.*360*86400/dt)) # multiplier for MOC time-step (MOC is updated every MOC_up_iters time steps)
@@ -84,15 +69,11 @@ total_iters=int(np.ceil(10000*360*86400/dt))# total number of timesteps
 
 # Effective diffusivity profile
 def kappaeff(z): # effective diffusivity profile with tapering in BBL
-#        #return (1e-5+3e-4*(np.exp((-4000-z)/1000.)))*(1.-np.maximum(-4000.-z+500.,0.)/500.)**2  
-#        #return (2e-5+1e-4*(z<-1500.))*(1.-np.maximum(-4000.-z+500.,0.)/500.)**2  
-#     #   return 1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/700. + np.minimum(z+2000.,0)/1000.))
-#     #           *(1.-np.maximum(-4000.-z+800.,0.)/800.)**2 )
         return 1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/1000. + np.minimum(z+2000.,0)/1300.))
                 *(1.-np.maximum(-4000.-z+600.,0.)/600.)**2 )
 
   
-def kappaall(z): # untapered diffusivity profile 
+def kappagcm(z): # untapered and unsmoothed diffusivity profile 
         return 1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/700. + np.minimum(z+2000.,0)/1000.)))
         
       
@@ -105,31 +86,20 @@ A_Pac=1.7e14#1.44e14
 Lx = 1.3e+07  #(length of the channel)
 Latl=6./21.*Lx;
 Lpac=15./21.*Lx;
-#K = 1700. # 1500 for variable wind stress % 1700 for const. wind stress
-#Test with revised parameter set:
 K = 1800.
 N2min=2e-7
 
 # create vertical grid:
 z=np.asarray(np.linspace(-4000, 0, 80))
 
-# effective diffusivity profile
-#kappaeff=1.0*( 1e-4*(1.1-np.tanh(np.maximum(z+2000.,0)/700. + np.minimum(z+2000.,0)/1000.)))
-#box = np.ones(21)/21.
-#kappaeff = ((np.convolve(kappaeff-kappaeff[-1], box, mode='same')+kappaeff[-1]+5e-6)
-#           *(1.-np.maximum(-4000.-z+600.,0.)/600.)**2) 
 
 
 fig = plt.figure(figsize=(3.5,4))
-#fig = plt.figure(figsize=(2.5,4))
-#plt.semilogx(kappaeff(z),z,'--b')
-#plt.semilogx(kappaall(z),z,'-b')
 plt.plot(kappaeff(z)*1e4,z,'--b')
-plt.plot(kappaall(z)*1e4,z,'-b')
+plt.plot(kappagcm(z)*1e4,z,'-b')
 plt.xlim(0,2.5)
 #plt.xlim(1e-5,5e-4)
 plt.xlabel('$\kappa$ [cm$^2$s$^{-1}$]',fontsize=12)
-#plt.xlabel('$\kappa$ [m$^2$s$^{-1}$]',fontsize=12)
 plt.ylabel('$z$ [m]',fontsize=13)
 fig.tight_layout() 
 #plt.savefig('kappa_profile.png', format='png', dpi=400)
@@ -149,7 +119,6 @@ AMOC.solve()
 
 # create interbasin zonal overturning model instance
 ZOC = Psi_Thermwind(z=z,b1=b_Atl,b2=b_Pac, f=1e-4)
-#ZOC = Psi_Thermwind(z=z,b1=b_Atl,b2=b_Pac, f=2e-6)
 # and solve for initial overturning streamfunction:
 ZOC.solve()
 # map inter-basin overturning to isopycnal space:
@@ -157,12 +126,10 @@ ZOC.solve()
 
 
 # create S.O. overturning model instance for Atlantic sector
-#SO_Atl=Psi_SO(z=z,y=y,b=b_Atl(z),bs=bs_SO,tau=tau,L=4.6e6,KGM=K.,Hsill=500.,HEk=100.,Htapertop=100.,Htaperbot=500.)
 SO_Atl=Psi_SO(z=z,y=y,b=b_Atl(z),bs=bs_SO,tau=tau,L=Latl,KGM=K)
 SO_Atl.solve()
 
 # create S.O. overturning model instance for Pacific sector
-#SO_Pac=Psi_SO(z=z,y=y,b=b_Atl(z),bs=bs_SO,tau=tau,L=Lx*2./3.,KGM=K.,Hsill=500.,HEk=100.,Htapertop=100.,Htaperbot=500.)
 SO_Pac=Psi_SO(z=z,y=y,b=b_Pac(z),bs=bs_SO,tau=tau,L=Lpac,KGM=K)
 SO_Pac.solve()
 
@@ -186,8 +153,6 @@ ax2.set_xlim((-0.02,0.030))
 # loop to iteratively find equilibrium solution
 for ii in range(0, total_iters):    
    # update buoyancy profile
-   #wAb=(AMOC.Psi-SO.Psi)*1e6
-   #wAN=-AMOC.Psi*1e6
    # using isopycnal overturning:
    wA_Atl=(Psi_iso_Atl+Psi_zonal_Atl-SO_Atl.Psi)*1e6
    wAN=-Psi_iso_N*1e6
@@ -195,11 +160,6 @@ for ii in range(0, total_iters):
    Atl.timestep(wA=wA_Atl,dt=dt)
    north.timestep(wA=wAN,dt=dt,do_conv=True)
    Pac.timestep(wA=wA_Pac,dt=dt)
-   # with hor. advection: (not to be used with isopycnal overturning)
-   #vdx=0*AMOC.Psi
-   #vdx[1:-1]=-1e6*(AMOC.Psi[0:-2]-AMOC.Psi[2:])/(AMOC.z[0:-2]-AMOC.z[2:])
-   #Atl.timestep(wA=wAb,dt=dt,vdx_in=-vdx,b_in=north.b)
-   #north.timestep(wA=wAN,dt=dt,do_conv=True,vdx_in=vdx,b_in=Atl.b)
    
    if ii%MOC_up_iters==0:
       # update overturning streamfunction (can be done less frequently)
@@ -217,8 +177,6 @@ for ii in range(0, total_iters):
    if ii%plot_iters==0:
       # Plot current state:
       ax1.plot(AMOC.Psi, AMOC.z,'--r', linewidth=0.5)
-      #ax1.plot(SO_Atl.Psi, SO_Atl.z, ':b', linewidth=0.5)
-      #ax1.plot(SO_Pac.Psi, SO_Pac.z, ':g', linewidth=0.5)
       ax1.plot(ZOC.Psi, ZOC.z, ':c', linewidth=0.5)
       ax1.plot(SO_Atl.Psi-ZOC.Psi, SO_Atl.z, '--b', linewidth=0.5)
       ax1.plot(SO_Pac.Psi+ZOC.Psi, SO_Pac.z, '--g', linewidth=0.5)
@@ -230,8 +188,6 @@ for ii in range(0, total_iters):
  
 
 ax1.plot(AMOC.Psi, AMOC.z,'--r', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi, SO_Atl.z, ':b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi, SO_Pac.z, ':g', linewidth=1.5)
 ax1.plot(ZOC.Psi, ZOC.z, ':c', linewidth=1.5)
 ax1.plot(SO_Atl.Psi-ZOC.Psi, SO_Atl.z, '--b', linewidth=1.5)
 ax1.plot(SO_Pac.Psi+ZOC.Psi, SO_Pac.z, '--g', linewidth=1.5)
@@ -523,8 +479,6 @@ fig.colorbar(CS, cax=cbar_ax,ticks=plevs[0::5], orientation='vertical')
 # Plot Isopycnal overturning
 
 fig = plt.figure(figsize=(10.8,6.8))
-#ax1 = fig.add_subplot(421, colspan = 3)
-#ax1 =fig.add_axes([0.1,.57,.31,.36])
 ax1 =fig.add_axes([0.1,.57,.33,.36])
 ax2 = ax1.twiny()
 plt.ylim((-4e3,0))
@@ -597,31 +551,6 @@ fig.colorbar(CS, cax=cbar_ax,ticks=plevs[0::5], orientation='vertical')
 # Plot adiabatic Isopycnal overturning
 
 fig = plt.figure(figsize=(10.8,6.8))
-##ax1 = fig.add_subplot(421, colspan = 3)
-##ax1 =fig.add_axes([0.1,.57,.31,.36])
-#ax1 =fig.add_axes([0.1,.57,.33,.36])
-#ax2 = ax1.twiny()
-#plt.ylim((-4e3,0))
-#ax1.set_ylabel('b [m s$^{-2}$]', fontsize=13)
-#ax1.set_xlim((-20,30))
-#ax2.set_xlim((-0.02,0.030))
-#ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
-#ax2.set_xlabel('$b_B$ [m s$^{-2}$]', fontsize=13)
-#ax1.plot(PsiSO_ad, z,'--r', linewidth=1.5)
-##ax1.plot(np.interp(b_basin,ZOC.bgrid,0.*ZOC.Psib()), z, ':c', linewidth=1.5)
-##ax1.plot(np.interp(b_basin,Atl.b,SO_Atl.Psi), z, '--b', linewidth=1.5)
-##ax1.plot(np.interp(b_basin,Pac.b,SO_Pac.Psi)
-##          +np.interp(b_basin,ZOC.bgrid,ZOC.Psib()), z, '--g', linewidth=1.5)
-#ax1.plot(PsiSO_ad, z, '--k', linewidth=1.5)
-#ax2.plot(Atl.b, Atl.z, '-b', linewidth=1.5)
-#ax2.plot(Pac.b, Pac.z, '-g', linewidth=1.5)
-#ax2.plot(north.b, north.z, '-r', linewidth=1.5)     
-#h1, l1 = ax1.get_legend_handles_labels()
-#h2, l2 = ax2.get_legend_handles_labels()
-#ax1.legend(h1+h2, l1+l2, loc=4, frameon=False)
-#ax1.plot(0.*b_basin, b_basin,linewidth=0.5,color='k',linestyle=':')
-#ax1.set_yticks(np.interp([0.02, 0.005,0.002,0.001,0.0005, 0.,-0.0005, -0.001 ],b_basin,z))
-#ax1.set_yticklabels([0.02, 0.005,0.002, 0.001,0.0005, 0.,-0.0005, -0.001 ])
 
 ax1 = fig.add_subplot(222)
 ax1.contour(ynew,z,psiarray_b.transpose()-psiarray_b_ad.transpose(),levels=plevs,colors='k',linewidths=0.5)
@@ -666,8 +595,6 @@ fig.colorbar(CS, cax=cbar_ax,ticks=plevs[0::5], orientation='vertical')
 # Plot adiabatic Diapycnal overturning
 
 fig = plt.figure(figsize=(10.8,6.8))
-#ax1 = fig.add_subplot(421, colspan = 3)
-#ax1 =fig.add_axes([0.1,.57,.31,.36])
 ax1 =fig.add_axes([0.1,.57,.33,.36])
 ax2 = ax1.twiny()
 plt.ylim((-4e3,0))
@@ -677,10 +604,6 @@ ax2.set_xlim((-0.02,0.030))
 ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
 ax2.set_xlabel('$b_B$ [m s$^{-2}$]', fontsize=13)
 ax1.plot(PsiSO_ad, z,'--r', linewidth=1.5)
-#ax1.plot(np.interp(b_basin,ZOC.bgrid,0.*ZOC.Psib()), z, ':c', linewidth=1.5)
-#ax1.plot(np.interp(b_basin,Atl.b,SO_Atl.Psi), z, '--b', linewidth=1.5)
-#ax1.plot(np.interp(b_basin,Pac.b,SO_Pac.Psi)
-#          +np.interp(b_basin,ZOC.bgrid,ZOC.Psib()), z, '--g', linewidth=1.5)
 ax1.plot(PsiSO_ad, z, '--k', linewidth=1.5)
 ax2.plot(Atl.b, Atl.z, '-b', linewidth=1.5)
 ax2.plot(Pac.b, Pac.z, '-g', linewidth=1.5)
@@ -730,107 +653,4 @@ cbar_ax = fig.add_axes([0.94, 0.15, 0.015, 0.7])
 fig.tight_layout()   
 fig.subplots_adjust(right=0.92)
 fig.colorbar(CS, cax=cbar_ax,ticks=plevs[0::5], orientation='vertical')
-
-
-#fig = plt.figure(figsize=(9,6))
-#ax1 =fig.add_subplot(121)
-#plt.ylim((-0.005,0.015))
-#ax1.set_ylabel('b [m s$^{-2}$]', fontsize=13)
-#ax1.set_xlim((-30,15))
-#ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
-#ax1.plot(-AMOC.Psib(), AMOC.bgrid,'-b', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi, SO_Atl.b(SO_Atl.z),'--b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi, SO_Pac.b(SO_Pac.z),'--g', linewidth=1.5)
-#[Psi_zonal_Atl,Psi_zonal_Pac]=ZOC.Psibz()
-#ax1.plot((AMOC.Psibz()[0]+Psi_zonal_Atl-SO_Atl.Psi), Atl.b,':b', linewidth=1.5)
-#ax1.plot((-Psi_zonal_Pac-SO_Pac.Psi), Atl.b,':g', linewidth=1.5)
-#ax1.plot(0.*AMOC.bgrid, AMOC.bgrid,linewidth=0.5,color='k',linestyle='-')
-#ax1 =fig.add_subplot(122)
-#plt.ylim((-0.005,0.005))
-#ax1.set_ylabel('b [m s$^{-2}$]', fontsize=13)
-#ax1.set_xlim((-25,15))
-#ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
-#ax1.plot(Psi_zonal_Atl-SO_Atl.Psi,Atl.b,'-b', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi, SO_Atl.b(SO_Atl.z),'--b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi, SO_Pac.b(SO_Pac.z),'--g', linewidth=1.5)
-#[Psi_zonal_Atl,Psi_zonal_Pac]=ZOC.Psibz()
-#ax1.plot((-Psi_zonal_Pac-SO_Pac.Psi), Atl.b,':g', linewidth=1.5)
-#ax1.plot(0.*AMOC.bgrid, AMOC.bgrid,linewidth=0.5,color='k',linestyle='-')
-
-#ax1.plot(SO_Atl.Psi, SO_Atl.z, ':b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi, SO_Pac.z, ':g', linewidth=1.5)
-#ax1.plot(ZOC.Psi, ZOC.z, ':c', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi-ZOC.Psi, SO_Atl.z, '--b', linewidth=1.5)
-#ax1.plot(SO_Pac.Psi+ZOC.Psi, SO_Pac.z, '--g', linewidth=1.5)
-#ax1.plot(SO_Atl.Psi+SO_Pac.Psi, z, '--c', linewidth=1.5)
-#ax2.plot(Atl.b, Atl.z, '-b', linewidth=1.5)
-#ax2.plot(Pac.b, Pac.z, '-g', linewidth=1.5)
-#ax2.plot(north.b, north.z, '-r', linewidth=1.5)     
-#h1, l1 = ax1.get_legend_handles_labels()
-#h2, l2 = ax2.get_legend_handles_labels()
-#ax1.legend(h1+h2, l1+l2, loc=4, frameon=False)
-
-
-
-
-
-## plot z-coord. overturning:
-#fig = plt.figure(figsize=(6.5,3))
-#ax1 = fig.add_subplot(111)
-#ax1.plot(np.array([l/1e3,l/1e3]),np.array([z[0],z[-1]]),color='0.5',linewidth=0.7,linestyle='dashed')
-#CS=ax1.contour(ynew,z,bnew.transpose(),levels=blevs,colors='k',linewidths=1.0,linestyles='solid')
-#ax1.clabel(CS,fontsize=10)
-#CS=ax1.contourf(ynew,z,psiarray_z.transpose(),levels=plevs,cmap=plt.cm.bwr, vmin=-17, vmax=17)
-#ax1.contour(ynew,z,psiarray_z.transpose(),levels=plevs,colors='0.5',linewidths=0.5)
-#ax1.set_xlim([0,ynew[-1]])
-#ax1.set_xlabel('y [km]',fontsize=12)
-#ax1.set_ylabel('Depth [m]',fontsize=12)
-#ax1.set_title('Depth-averaged Overturning',fontsize=12)
-#fig.colorbar(CS, ticks=plevs[0::5], orientation='vertical')
-#fig.tight_layout()   
-##fig.savefig('psi_b_2D_depth_adiabatic_revised.png', format='png', dpi=600)
-#
-
-## Plot profiles:
-#fig = plt.figure(figsize=(3.5,3.5))
-#ax1 = fig.add_subplot(111)
-#ax2 = ax1.twiny()
-#plt.ylim((-4e3,0))
-#ax1.set_ylabel('Depth [m]', fontsize=13)
-#ax1.set_xlim((-8,14))
-#ax2.set_xlim((-0.016,0.028))
-#ax1.set_xlabel('$\Psi$ [SV]', fontsize=13)
-#ax2.set_xlabel('$b_B$ [m s$^{-2}$]', fontsize=13)
-#ax1.plot(AMOC.Psi, AMOC.z,linewidth=2,color='m',linestyle='--',label='$\Psi_N$')
-#ax1.plot(PsiSO, PsiSO.z,linewidth=2,color='c',linestyle='--',label='$\Psi_{SO}$')
-#ax2.plot(b_north, z, linewidth=2,color='r',label='$b_N$')
-#ax2.plot(b_basin, z, linewidth=2,color='b',label='$b_B$')
-#h1, l1 = ax1.get_legend_handles_labels()
-#h2, l2 = ax2.get_legend_handles_labels()
-#ax1.legend(h1+h2, l1+l2, loc=4, frameon=False)
-#ax1.plot(0.*z, z,linewidth=0.5,color='k',linestyle=':')
-#fig.tight_layout()
-##fig.savefig('profiles.png', format='png', dpi=600)
-#
-#
-## Plot SO ML results:
-#fig = plt.figure(figsize=(4,3.1))
-#ax1 = fig.add_subplot(111)
-#ax2 = ax1.twinx()
-#plt.xlim((0,2600))
-#ax1.set_xlabel('y [km]', fontsize=13)
-#ax1.set_ylim((-5.,10.))
-#ax2.set_ylim((-0.01,0.02))
-#ax1.set_ylabel('$\Psi_{SO}$ [SV]', fontsize=13)
-#ax2.set_ylabel('$b_{SO}$ [m s$^{-2}$]', fontsize=13)
-##ax1.plot(y/1000.,channel.Psi_s,linewidth=2,color='c',linestyle='--',label='$\Psi_{SO}$')
-#ax2.plot(y/1000.,bs_SO, linewidth=2,color='r',label='$b_{SO}$')
-#h1, l1 = ax1.get_legend_handles_labels()
-#h2, l2 = ax2.get_legend_handles_labels()
-#ax1.legend(h1+h2, l1+l2, loc=4, frameon=False)
-#ax1.plot(y/1000.,0.*y,linewidth=0.5,color='k',linestyle=':')
-#fig.tight_layout()   
-##fig.savefig('bs_Psi_SO.png', format='png', dpi=600)
-
-
 

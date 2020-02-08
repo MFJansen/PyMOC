@@ -263,6 +263,6 @@ else:
   ax2.set_xlabel('$\kappa$',fontsize=13) 
   ax3.set_xlabel('$\kappa$',fontsize=13) 
 fig.tight_layout()
-plt.savefig(path+'/overlap.png', format='png', dpi=400)
+#plt.savefig(path+'/overlap.png', format='png', dpi=400)
 
 
