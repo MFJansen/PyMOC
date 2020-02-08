@@ -11,8 +11,8 @@ the mean depth of the respective isopycnal in the column.
 
 import sys
 sys.path.append('../Modules')
-from model_thermwind import Model_Thermwind
-from model_column import Model_Column
+from psi_thermwind import Psi_Thermwind
+from column import Column
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -42,7 +42,7 @@ z=np.asarray(np.linspace(-4000, 0, 80))
 def b_basin(z): return bs*np.exp(z/300.)
 
 # create overturning model instance
-AMOC = Model_Thermwind(z=z,b1=b_basin,b2=0.)
+AMOC = Psi_Thermwind(z=z,b1=b_basin,b2=0.)
 # and solve for initial overturning streamfunction:
 AMOC.solve()
 # evaluate overturning in isopycnal space:
@@ -61,9 +61,9 @@ ax2.set_xlabel('b', fontsize=14)
 
 
 # create adv-diff column model instance for basin
-basin= Model_Column(z=z,kappa=kappa,Area=A_basin,b=b_basin,bs=bs,bbot=bbot)
+basin= Column(z=z,kappa=kappa,Area=A_basin,b=b_basin,bs=bs,bbot=bbot)
 # create adv-diff column model instance for basin
-north= Model_Column(z=z,kappa=kappa,Area=A_north,b=0.,bs=bs_north,bbot=bbot)
+north= Column(z=z,kappa=kappa,Area=A_north,b=0.,bs=bs_north,bbot=bbot)
 
 # Main time stepping loop
 for ii in range(0, total_iters):    
