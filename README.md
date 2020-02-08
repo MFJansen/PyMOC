@@ -1,10 +1,37 @@
-This repository is part of a project to develop a modular suite of  simple models
-for the the deep ocean stratification and MOC. The project is very much ongoing,
-and if you want to contribute, please get in touch!
+[![CircleCI](https://circleci.com/gh/pymoc/pymoc/tree/master.svg?style=shield)](https://circleci.com/gh/pymoc/PyMOC/tree/master)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/b03ff00b5c86d7afc364/test_coverage)](https://codeclimate.com/github/pymoc/PyMOC/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/b03ff00b5c86d7afc364/maintainability)](https://codeclimate.com/github/pymoc/PyMOC/maintainability)
+[![PyPI version](https://badge.fury.io/py/py-moc.svg)](https://badge.fury.io/py/py-moc)
+[![Documentation](https://img.shields.io/badge/docs-PyMOC-informational)](https://pymoc.github.io)
+[![License](https://img.shields.io/badge/license-MIT-informational)](LICENSE)
 
-As always with code, there are likely to be bugs, and it's not recommended to use
-and trust this as a "black box". If you find any issues, please get in touch!
+PyMOC is a suite of python modules to build simple "toy" models for ocean's
+Meridional Overturning Circulation (MOC). 
 
-Notice that the matlab code is legacy and no longer being developed (although anybody
-is welcome to take on that task).
+The model suite consists of several independent modules representing
+various ocean regions and dynamics. Specifically, there are modules
+for calculating the 1-D advective-diffusive buoyancy tendencies averaged 
+over ocean basins, given the net isopycnal transports in and out of the column.
+The isopycnal transports are computed as diagnostic  relationships, with modules
+to calculate the wind- and eddy-driven residual circulation in a southern-ocean-like
+re-entrant channel, as well as the geostrophic exchange between different basins or
+basin regions. These modules may be coupled to study the circulation in a wide range
+of different configurations.
 
+The intended audiences for this model are researchers, educators and students
+in the geophysical sciences. The goal is to provide an accessible
+model appropriate for newcomers to geophysical modeling, but with physics
+that reflect the current state of our theoretical understanding of the deep ocean
+overturning circulation.
+
+Configuration and execution of the PyMOC suite requires relatively little
+technical knowledge or computational resources. All modules are written
+in pure Python, and the only core dependencies are the NumPy and SciPy
+libraries. If configuration of your base system environment is undesirable,
+a preconfigured Docker container has been made available with all required
+software libraries pre-installed. 
+
+Anybody is more than welcome to contibute to the development of PyMOC,
+but is asked to adhere to the goal of keeping PyMOC well tested, stable,
+maintainable, and documented. Further details on installation, configuration,
+contribution, and issue reporting is available in the [documentation](https://pymoc.github.io).

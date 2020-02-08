@@ -1,0 +1,29 @@
+version: "2"         # required to adjust maintainability checks
+checks:
+  argument-count:
+    enabled: false
+exclude_patterns:
+  - "examples/**/*.py"
+  - "tests/**/*.py"
+  - "src/pymoc/plotting/*"
+  - "src/pymoc/utils/check_numpy_version.py"
+  - "src/**/__init__.py"
+  - "setup.py"
+  - "docs/*"
+  - "examples/**/*.pdf"
+  - "Dockerfile*"
+  - ".circleci/*"
+  - ".coveragerc"
+  - ".githooks/*"
+  - ".gitignore"
+  - ".style.yapf"
+  - "LICENSE"
+  - "MANIFEST"
+  - "Makefile"
+  - "cc-test-reporter"
+  - ".codeclimate.yml"
+  - ".codecov.yml"
+  - "*.md"
+  - "*.yml"
+  - "*.html"
+  - "*.pdf"
